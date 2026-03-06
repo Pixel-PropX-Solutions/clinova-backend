@@ -17,16 +17,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     if payload is None:
         raise credentials_exception
         
-    username: str = payload.get("sub")
+    email: str = payload.get("sub")
     role: str = payload.get("role")
     clinic_id: str = payload.get("clinic_id")
     
-    if username is None:
+    if email is None:
         raise credentials_exception
         
-    token_data = TokenData(username=username, role=role, clinic_id=clinic_id)
+    token_data = TokenData(email=email, role=role, clinic_id=clinic_id)
     return token_data
-
 async def get_current_active_user(current_user: TokenData = Depends(get_current_user)):
     return current_user
 

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from datetime import datetime
 from typing import Optional
 from bson import ObjectId
@@ -28,7 +28,7 @@ class PyObjectId(ObjectId):
         return ObjectId(v)
 
 class UserBase(BaseModel):
-    username: str
+    email: str
     role: str = "clinic_user"  # or 'admin'
     clinic_id: Optional[str] = None
 
@@ -45,6 +45,6 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
-    username: str | None = None
+    email: str | None = None
     role: str | None = None
     clinic_id: str | None = None

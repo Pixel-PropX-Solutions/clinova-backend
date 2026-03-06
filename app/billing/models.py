@@ -13,7 +13,6 @@ class BillBase(BaseModel):
     patient_id: str
     visit_id: str
     services: List[BillServiceItem]
-    total_amount: float
     payment_mode: str = "cash"
 
 class BillCreate(BillBase):
@@ -22,6 +21,7 @@ class BillCreate(BillBase):
 class BillInDB(BillBase):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     clinic_id: str
+    total_amount: float
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
