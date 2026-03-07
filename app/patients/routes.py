@@ -25,6 +25,7 @@ async def create_patient(patient: PatientCreate, current_user: TokenData = Depen
     
     result = await db.patients.insert_one(patient_db.model_dump(by_alias=True, exclude=["id"]))
     created_patient = await db.patients.find_one({"_id": result.inserted_id})
+    created_patient["_id"] = str(created_patient["_id"])
     return created_patient
 
 @router.get("/")
@@ -72,3 +73,37 @@ async def get_patient(id: str, current_user: TokenData = Depends(get_current_cli
         raise HTTPException(status_code=404, detail="Patient not found")
     item["_id"] = str(item["_id"])
     return item
+
+@router.get("/{id}/profile")
+async def get_patient_profile(id: str, current_user: TokenData = Depends(get_current_clinic_user)):
+    db = get_db()
+    patient = await db.patients.find_one({"_id": ObjectId(id), "clinic_id": current_user.clinic_id})
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    patient["_id"] = str(patient["_id"])
+    
+    # Use embedded visits from patient document if available
+    embedded_visits = patient.get("visits", [])
+    
+    if embedded_visits:
+        # Reverse to get newest first
+        visits = list(reversed(embedded_visits))
+    else:
+        # Fallback: fetch from visits collection for older patients that don't have embedded visits
+        visits = await db.visits.find({
+            "patient_id": id,
+            "clinic_id": current_user.clinic_id
+        }).sort("created_at", -1).to_list(500)
+        for v in visits:
+            v["_id"] = str(v["_id"])
+    
+    # Calculate total fees
+    total_fees = sum(v.get("fees", 0) for v in visits)
+    
+    return {
+        "patient": patient,
+        "visits": visits,
+        "total_fees": total_fees,
+        "total_visits": len(visits),
+    }
+

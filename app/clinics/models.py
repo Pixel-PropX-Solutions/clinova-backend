@@ -9,6 +9,8 @@ class ClinicBase(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     plan: str = "basic"
+    logo_url: Optional[str] = None
+    default_template_id: Optional[str] = None
 
 class ClinicCreate(ClinicBase):
     pass
@@ -19,6 +21,14 @@ class ClinicUpdate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     is_active: Optional[bool] = None
+    logo_url: Optional[str] = None
+    default_template_id: Optional[str] = None
+
+class ClinicSettingsUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    logo_url: Optional[str] = None
+    default_template_id: Optional[str] = None
 
 class ClinicInDB(ClinicBase):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)

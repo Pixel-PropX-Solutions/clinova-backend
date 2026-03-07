@@ -45,3 +45,29 @@ Once the server is running, visit:
 ## Initializing Data
 
 Create your first admin user in MongoDB directly, or write a quick seeding script. Then you can use `/api/v1/auth/token` to login and use `/api/v1/clinics` to manage clinic accounts!
+
+
+
+
+
+
+
+Variable	Value
+${name}	Patient name
+${phone} / ${mobile}	Phone number
+${age}	Age
+${gender} / ${sex}	Gender
+${address}	Address
+${fees}	Visit fees
+${dr_name}	Doctor name
+${disease}	Disease
+${diagnosis}	Diagnosis
+${specialization} / ${speciality}	Specialization
+${payment_method}	Payment method
+${date}	Visit date
+${time}	Visit time
+${datetime}	Full datetime
+${medicines}	Comma-separated medicines
+${clinic_name}	Clinic name
+${clinic_phone}	Clinic phone
+${clinic_email}	Clinic email

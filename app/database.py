@@ -23,5 +23,4 @@ async def setup_indexes():
     await db.patients.create_index([("phone", 1)])
     await db.patients.create_index([("clinic_id", 1)])
     await db.visits.create_index([("patient_id", 1)])
-    await db.bills.create_index([("clinic_id", 1)])
     await db.users.create_index([("email", 1)], unique=True)

@@ -26,12 +26,24 @@ async def create_visit(visit: VisitCreate, current_user: TokenData = Depends(get
     created_visit = await db.visits.find_one({"_id": result.inserted_id})
     created_visit["_id"] = str(created_visit["_id"])
     
-    # Update patient visit count and last visit date
+    # Update patient: increment visit count, set last visit date, push visit to embedded array
+    visit_summary = {
+        "visit_id": str(result.inserted_id),
+        "fees": created_visit.get("fees", 0),
+        "dr_name": created_visit.get("dr_name"),
+        "disease": created_visit.get("disease"),
+        "specialization": created_visit.get("specialization"),
+        "payment_method": created_visit.get("payment_method", "Cash"),
+        "visited_at": created_visit.get("visited_at"),
+        "created_at": created_visit.get("created_at"),
+    }
+    
     await db.patients.update_one(
         {"_id": ObjectId(visit.patient_id)},
         {
             "$inc": {"visit_count": 1},
-            "$set": {"last_visit_date": created_visit["created_at"]}
+            "$set": {"last_visit_date": created_visit["created_at"]},
+            "$push": {"visits": visit_summary}
         }
     )
     
