@@ -32,6 +32,7 @@ async def create_clinic(clinic: ClinicCreate, background_tasks: BackgroundTasks,
         
         new_user = {
             "email": clinic.email,
+            "username": clinic.email, # To satisfy any existing legacy index on username
             "role": "clinic_user",
             "clinic_id": str(result.inserted_id),
             "hashed_password": hashed_password,

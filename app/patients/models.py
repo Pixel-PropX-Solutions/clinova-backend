@@ -8,6 +8,7 @@ class PatientBase(BaseModel):
     phone: str
     gender: str
     age: int
+    address: Optional[str] = None
     notes: Optional[str] = None
 
 class PatientCreate(PatientBase):
