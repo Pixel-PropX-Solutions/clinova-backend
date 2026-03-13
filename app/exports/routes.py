@@ -12,7 +12,7 @@ router = APIRouter(prefix="/export", tags=["Exports"])
 
 @router.get("/patients")
 async def export_patients(
-    format: str = Query("csv", regex="^(csv|xlsx)$"),
+    format: str = Query("csv", pattern="^(csv|xlsx)$"),
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     current_user: TokenData = Depends(get_current_clinic_user)
@@ -53,7 +53,7 @@ async def export_patients(
 
 @router.get("/bills")
 async def export_bills(
-    format: str = Query("csv", regex="^(csv|xlsx)$"),
+    format: str = Query("csv", pattern="^(csv|xlsx)$"),
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
     current_user: TokenData = Depends(get_current_clinic_user)
@@ -69,7 +69,7 @@ async def export_bills(
         if end_date: date_query["$lte"] = end_date
         query["created_at"] = date_query
 
-    bills_cursor = db.bills.find(query, {"_id": 0, "clinic_id": 0, "services": 0})
+    bills_cursor = db.visits.find(query, {"_id": 0, "clinic_id": 0, "patient_id": 0})
     bills = await bills_cursor.to_list(length=None)
     
     df = pd.DataFrame(bills)
