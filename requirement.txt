@@ -1,0 +1,12 @@
+cloudinary
+fastapi
+jinja2
+motor
+openpyxl
+pandas
+pydantic-settings
+pydantic[email]
+pyjwt
+python-jose[cryptography]
+python-multipart
+uvicorn
