@@ -27,7 +27,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
-    redoc_url=None,
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 app.add_middleware(
