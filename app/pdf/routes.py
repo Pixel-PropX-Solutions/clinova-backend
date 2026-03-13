@@ -2,15 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from app.auth.dependencies import get_current_clinic_user
 from app.auth.models import TokenData
 from app.database import get_db
-from app.pdf.pdf_generator import generate_pdf
 from bson import ObjectId
 from datetime import datetime
 
 router = APIRouter(prefix="/pdf", tags=["PDF Generation"])
 
 
-@router.get("/generate/{visit_id}/{template_id}")
-async def generate_pdf_endpoint(visit_id: str, template_id: str, current_user: TokenData = Depends(get_current_clinic_user)):
+@router.get("/content/{visit_id}/{template_id}")
+async def get_pdf_content(visit_id: str, template_id: str, current_user: TokenData = Depends(get_current_clinic_user)):
     db = get_db()
 
     # 1. Fetch Visit
@@ -66,6 +65,7 @@ async def generate_pdf_endpoint(visit_id: str, template_id: str, current_user: T
         "payment_method": str(visit.get("payment_method", "Cash")),
         "date": visit_date.strftime("%d-%m-%Y"),
         "time": visit_date.strftime("%I:%M %p"),
+        
         "datetime": visit_date.strftime("%d-%m-%Y %I:%M %p"),
         "medicines": ", ".join(visit.get("medicines", [])),
 
@@ -74,15 +74,12 @@ async def generate_pdf_endpoint(visit_id: str, template_id: str, current_user: T
         "clinic_phone": str(clinic.get("phone", "")) if clinic else "",
         "clinic_email": str(clinic.get("email", "")) if clinic else "",
         "clinic_logo": str(clinic.get("logo_url", "")) if clinic else "",
+        "clinic_address": str(clinic.get("address", "")) if clinic else "",
     }
 
     # 7. Single-pass replacement using regex + hashmap lookup
     import re
     html_content = template_doc["html_content"]
-
-    def replace_var(match):
-        key = match.group(1)
-        return variables.get(key, match.group(0))  # Keep original if not found
 
     # Matches ${key} and {{key}} patterns in one pass
     html_content = re.sub(r'\$\{([^}]+)\}|\{\{([^}]+)\}\}', 
@@ -90,12 +87,5 @@ async def generate_pdf_endpoint(visit_id: str, template_id: str, current_user: T
         html_content
     )
     
-    # 8. Generate PDF
-    pdf_bytes = await generate_pdf(html_content)
-
-    return Response(
-        content=pdf_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=parchi_{visit_id}.pdf"}
-    )
+    return {"html": html_content}
 

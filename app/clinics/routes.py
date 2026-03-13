@@ -1,12 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, UploadFile, File
 from app.clinics.models import ClinicCreate, ClinicInDB, ClinicUpdate
 from app.auth.dependencies import get_current_admin
 from app.database import get_db
 from bson import ObjectId
 from app.auth.pass_utils import get_password_hash
 from app.utils.email import send_email
+from app.config import settings
+from datetime import datetime, timedelta, time
+from collections import defaultdict
 import random
 import string
+import cloudinary
+import cloudinary.uploader
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+    api_key=settings.CLOUDINARY_API_KEY,
+    api_secret=settings.CLOUDINARY_API_SECRET,
+)
 router = APIRouter(prefix="/clinics", tags=["Clinics"])
 
 @router.post("/", response_model=ClinicInDB, status_code=status.HTTP_201_CREATED)
@@ -73,3 +85,103 @@ async def update_clinic(clinic_id: str, clinic_update: ClinicUpdate, current_use
         
     updated = await db.clinics.find_one({"_id": ObjectId(clinic_id)})
     return updated
+
+@router.get("/{clinic_id}/stats")
+async def get_clinic_stats(clinic_id: str, current_user = Depends(get_current_admin)):
+    db = get_db()
+    
+    # Check if clinic exists
+    clinic = await db.clinics.find_one({"_id": ObjectId(clinic_id)})
+    if not clinic:
+        raise HTTPException(status_code=404, detail="Clinic not found")
+
+    # Time ranges
+    now = datetime.utcnow()
+    last_30_days = now - timedelta(days=30)
+    
+    # 1. Basic Stats
+    total_patients = await db.patients.count_documents({"clinic_id": clinic_id})
+    total_visits = await db.visits.count_documents({"clinic_id": clinic_id})
+    
+    # 2. Last Activity (Latest Visit)
+    last_visit = await db.visits.find_one(
+        {"clinic_id": clinic_id},
+        sort=[("created_at", -1)]
+    )
+    last_use = last_visit["created_at"] if last_visit else clinic.get("created_at")
+    
+    # 3. Monthly Revenue Trend (Adapted from dashboard/routes.py)
+    six_months_ago = now.replace(day=1) - timedelta(days=150)
+    monthly_visits = await db.visits.find({
+        "clinic_id": clinic_id,
+        "created_at": {"$gte": six_months_ago}
+    }).to_list(length=None)
+    
+    monthly_stats = defaultdict(float)
+    for v in monthly_visits:
+        month_key = v["created_at"].strftime("%Y-%m")
+        monthly_stats[month_key] += v.get("fees", 0)
+    
+    monthly_revenue_list = [
+        {"month": k, "revenue": v} 
+        for k, v in sorted(monthly_stats.items())
+    ]
+
+    # 4. Patient Growth (Last 6 months)
+    monthly_patients = defaultdict(int)
+    patients = await db.patients.find({
+        "clinic_id": clinic_id,
+        "created_at": {"$gte": six_months_ago}
+    }).to_list(length=None)
+    
+    for p in patients:
+        month_key = p["created_at"].strftime("%Y-%m")
+        monthly_patients[month_key] += 1
+        
+    monthly_patient_list = [
+        {"month": k, "count": v}
+        for k, v in sorted(monthly_patients.items())
+    ]
+
+    return {
+        "summary": {
+            "total_patients": total_patients,
+            "total_visits": total_visits,
+            "last_use": last_use,
+            "is_active": clinic.get("is_active", True)
+        },
+        "charts": {
+            "revenue": monthly_revenue_list,
+            "patients": monthly_patient_list
+        }
+    }
+
+@router.post("/{clinic_id}/upload-logo")
+async def upload_clinic_logo(
+    clinic_id: str,
+    file: UploadFile = File(...),
+    current_user = Depends(get_current_admin),
+):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+
+    contents = await file.read()
+    try:
+        result = cloudinary.uploader.upload(
+            contents,
+            folder="clinic_logos",
+            public_id=f"clinic_{clinic_id}",
+            overwrite=True,
+            resource_type="image",
+        )
+        logo_url = result["secure_url"]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")
+
+    db = get_db()
+    await db.clinics.update_one(
+        {"_id": ObjectId(clinic_id)}, 
+        {"$set": {"logo_url": logo_url}}
+    )
+
+    return {"logo_url": logo_url}

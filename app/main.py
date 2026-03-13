@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+# Minor change to trigger reload
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import connect_to_mongo, close_mongo_connection

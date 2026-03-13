@@ -27,6 +27,7 @@ class ClinicUpdate(BaseModel):
 class ClinicSettingsUpdate(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
+    address: Optional[str] = None
     logo_url: Optional[str] = None
     default_template_id: Optional[str] = None
 

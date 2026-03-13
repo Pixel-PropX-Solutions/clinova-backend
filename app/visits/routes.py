@@ -69,3 +69,44 @@ async def list_visits(patient_id: str, current_user: TokenData = Depends(get_cur
         v["_id"] = str(v["_id"])
         
     return visits
+
+@router.delete("/{visit_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_visit(visit_id: str, current_user: TokenData = Depends(get_current_clinic_user)):
+    db = get_db()
+    
+    # 1. Fetch visit to get patient_id
+    visit = await db.visits.find_one({"_id": ObjectId(visit_id), "clinic_id": current_user.clinic_id})
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found")
+    
+    patient_id = visit["patient_id"]
+    
+    # 2. Delete the visit
+    await db.visits.delete_one({"_id": ObjectId(visit_id)})
+    
+    # 3. Update patient: decrement visit count, remove visit from array
+    await db.patients.update_one(
+        {"_id": ObjectId(patient_id)},
+        {
+            "$inc": {"visit_count": -1},
+            "$pull": {"visits": {"visit_id": visit_id}}
+        }
+    )
+    
+    # 4. Update last_visit_date to the latest remaining visit
+    updated_patient = await db.patients.find_one({"_id": ObjectId(patient_id)})
+    if updated_patient and updated_patient.get("visits") and len(updated_patient["visits"]) > 0:
+        # Sort visits to find the latest
+        remaining_visits = updated_patient["visits"]
+        latest_visit = max(remaining_visits, key=lambda x: x.get("visited_at") or x.get("created_at"))
+        await db.patients.update_one(
+            {"_id": ObjectId(patient_id)},
+            {"$set": {"last_visit_date": latest_visit.get("visited_at") or latest_visit.get("created_at")}}
+        )
+    elif updated_patient:
+        await db.patients.update_one(
+            {"_id": ObjectId(patient_id)},
+            {"$set": {"last_visit_date": None}}
+        )
+
+    return None
