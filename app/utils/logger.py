@@ -16,4 +16,4 @@ def get_logger(name: str) -> logging.Logger:
         
     return logger
 
-log = get_logger("clinic_saas")
+log = get_logger("Clinova")

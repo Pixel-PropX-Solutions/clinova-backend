@@ -18,7 +18,7 @@ from app.utils.logger import log
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info("Starting up Clinic Management SaaS backend...")
+    log.info("Starting up Clinova backend...")
     await connect_to_mongo()
     yield
     log.info("Shutting down...")

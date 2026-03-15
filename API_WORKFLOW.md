@@ -1,4 +1,4 @@
-# Medical Dashboard Backend - API Workflow Guide
+# Clinova Backend - API Workflow Guide
 
 This document outlines the complete end-to-end workflow for the Clinic Management SaaS API. It describes the sequence of API calls needed to navigate through the entire system, from clinic creation to generating bills and PDFs.
 

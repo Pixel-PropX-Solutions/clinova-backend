@@ -33,8 +33,6 @@ async def get_dashboard_stats(
     }
 
     # 1. Total patients in range
-    # Since patients might not have a clinic-specific "created_at" that maps perfectly to visits,
-    # we can count unique patient_ids in the visits collection for that range
     unique_patients = await db.visits.distinct("patient_id", query)
     total_patients = len(unique_patients)
     
@@ -68,7 +66,6 @@ async def get_dashboard_stats(
             online_revenue += fees
 
     # 3. Monthly Revenue Trend (Last 6 months)
-    # We'll calculate this regardless of the date range picker to show consistent charts
     six_months_ago = datetime.utcnow().replace(day=1) - timedelta(days=150) # Roughly 6 months
     monthly_query = {
         "clinic_id": current_user.clinic_id,
@@ -89,7 +86,6 @@ async def get_dashboard_stats(
     ]
 
     # 4. Weekly/Daily breakdown within the selected range (if range is small)
-    # For now, let's just provide the daily breakdown for the selected range
     daily_stats = defaultdict(float)
     for v in visits_in_range:
         day_key = v["created_at"].strftime("%Y-%m-%d")

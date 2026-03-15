@@ -3,7 +3,7 @@ import sys
 
 def main():
     """Run the FastAPI server using uvicorn with reload enabled."""
-    print("🚀 Starting the Medical Dashboard Backend...")
+    print("🚀 Starting the Clinova Backend...")
     try:
         # We use uv run uvicorn directly as requested
         subprocess.run(["uvicorn", "app.main:app", "--reload"], shell=True)
