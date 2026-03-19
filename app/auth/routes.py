@@ -12,6 +12,17 @@ import random
 import string
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+
+def _normalize_clinic_id(clinic_id):
+    if clinic_id is None:
+        return None
+    if isinstance(clinic_id, str):
+        normalized = clinic_id.strip()
+        if not normalized or normalized.lower() in {"none", "null"}:
+            return None
+        return normalized
+    return str(clinic_id)
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
@@ -37,7 +48,11 @@ async def login_for_access_token(response: Response, form_data: OAuth2PasswordRe
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    token_data = {"sub": user["email"], "role": user.get("role", "clinic_user"), "clinic_id": str(user.get("clinic_id"))}
+    token_data = {
+        "sub": user["email"],
+        "role": user.get("role", "clinic_user"),
+        "clinic_id": _normalize_clinic_id(user.get("clinic_id")),
+    }
     access_token = create_access_token(data=token_data)
     refresh_token = create_access_token(data=token_data, expires_delta=timedelta(days=7))
     
@@ -58,7 +73,11 @@ async def login(response: Response, login_data: UserLogin):
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    token_data = {"sub": user["email"], "role": user.get("role", "clinic_user"), "clinic_id": str(user.get("clinic_id"))}
+    token_data = {
+        "sub": user["email"],
+        "role": user.get("role", "clinic_user"),
+        "clinic_id": _normalize_clinic_id(user.get("clinic_id")),
+    }
     access_token = create_access_token(data=token_data)
     refresh_token = create_access_token(data=token_data, expires_delta=timedelta(days=7))
     

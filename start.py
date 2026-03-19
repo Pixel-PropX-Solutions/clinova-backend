@@ -1,12 +1,22 @@
 import subprocess
 import sys
 
+
 def main():
     """Run the FastAPI server using uvicorn with reload enabled."""
     print("🚀 Starting the Clinova Backend...")
     try:
-        # We use uv run uvicorn directly as requested
-        subprocess.run(["uvicorn", "app.main:app", "--reload"], shell=True)
+        subprocess.run(
+            [
+                "uvicorn",
+                "app.main:app",
+                "--reload",
+                # "--host",
+                # "0.0.0.0",
+                # "--port",
+                # "8000",
+            ]
+        )
     except KeyboardInterrupt:
         print("\n👋 Server stopped.")
         sys.exit(0)
@@ -14,7 +24,6 @@ def main():
         print(f"❌ Error starting server: {e}")
         sys.exit(1)
 
+
 if __name__ == "__main__":
     main()
-
-    

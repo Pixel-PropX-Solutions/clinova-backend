@@ -24,8 +24,44 @@ router = APIRouter(prefix="/settings", tags=["Settings"])
 # --- Get Clinic Profile ---
 @router.get("/profile")
 async def get_profile(current_user: TokenData = Depends(get_current_clinic_user)):
+    if current_user.role != "clinic_user" and current_user.role != "admin":
+        raise HTTPException(
+            status_code=403, detail="Not enough permissions to access clinic profile"
+        )
+    print(
+        f"Fetching profile for user: {current_user.email}, role: {current_user.role}, clinic_id: {current_user.clinic_id}"
+    )
+
+    clinic_id = current_user.clinic_id
+    if clinic_id is not None:
+        clinic_id = clinic_id.strip()
+        if not clinic_id or clinic_id.lower() in {"none", "null"}:
+            clinic_id = None
+
+    if current_user.role == "admin" and clinic_id is None:
+        return {
+            "_id": "admin_clinic_id",
+            "name": "Admin Clinic",
+            "address": "123 Admin St, Admin City, Admin State, 12345",
+            "phone": "555-123-4567",
+            "email": current_user.email,
+            "plan": "premium",
+            "logo_url": "",
+            "role": "admin",
+            "default_template_id": "",
+            "is_active": True,
+        }
+
+    if clinic_id is None:
+        raise HTTPException(
+            status_code=400, detail="Clinic is not assigned to current user"
+        )
+
+    if not ObjectId.is_valid(clinic_id):
+        raise HTTPException(status_code=400, detail="Invalid clinic_id in token")
+
     db = get_db()
-    clinic = await db.clinics.find_one({"_id": ObjectId(current_user.clinic_id)})
+    clinic = await db.clinics.find_one({"_id": ObjectId(clinic_id)})
     if not clinic:
         raise HTTPException(status_code=404, detail="Clinic not found")
 
@@ -81,9 +117,7 @@ async def upload_logo(
         )
         logo_url = result["secure_url"]
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to upload image: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")
 
     # Save to clinic doc
     db = get_db()
@@ -139,7 +173,10 @@ async def set_default_template(
         raise HTTPException(status_code=404, detail="Template not found")
 
     # Template must be global or belong to the clinic
-    if not template.get("is_global") and template.get("clinic_id") != current_user.clinic_id:
+    if (
+        not template.get("is_global")
+        and template.get("clinic_id") != current_user.clinic_id
+    ):
         raise HTTPException(status_code=403, detail="Template not accessible")
 
     await db.clinics.update_one(

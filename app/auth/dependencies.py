@@ -7,6 +7,15 @@ from app.database import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 
+
+def _normalize_clinic_id(clinic_id: str | None):
+    if clinic_id is None:
+        return None
+    normalized = clinic_id.strip()
+    if not normalized or normalized.lower() in {"none", "null"}:
+        return None
+    return normalized
+
 async def get_current_user(request: Request, token: str | None = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -30,7 +39,7 @@ async def get_current_user(request: Request, token: str | None = Depends(oauth2_
         
     email: str = payload.get("sub")
     role: str = payload.get("role")
-    clinic_id: str = payload.get("clinic_id")
+    clinic_id: str | None = _normalize_clinic_id(payload.get("clinic_id"))
     
     if email is None:
         raise credentials_exception

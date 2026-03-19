@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-# Minor change to trigger reload
+
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import connect_to_mongo, close_mongo_connection
@@ -33,11 +33,14 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-                "https://clinova-frontend.vercel.app",
-                "http://localhost:3000",
-                "https://localhost:3000",
-    ],
+    # allow_origins=[
+    #             "https://clinova-frontend.vercel.app",
+    #             "http://localhost:3000",
+    #             "https://localhost:3000",
+    #             "http://192.168.152.123:3000",
+    #             "https://192.168.152.123:3000"
+    # ],
+    allow_origins=["*"],  # for dev only
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

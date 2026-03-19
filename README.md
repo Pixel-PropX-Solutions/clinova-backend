@@ -94,7 +94,7 @@ If SMTP credentials are not set, email sending falls back to console output.
 ### 3. Run the app
 
 ```bash
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Alternative:

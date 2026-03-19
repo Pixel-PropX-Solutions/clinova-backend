@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime
 from app.auth.models import PyObjectId
 
+
 class ClinicBase(BaseModel):
     name: str
     address: Optional[str] = None
@@ -11,9 +12,13 @@ class ClinicBase(BaseModel):
     plan: str = "basic"
     logo_url: Optional[str] = None
     default_template_id: Optional[str] = None
+    default_doctor_name: Optional[str] = None
+    default_doctor_fee: Optional[int] = 0
+
 
 class ClinicCreate(ClinicBase):
     pass
+
 
 class ClinicUpdate(BaseModel):
     name: Optional[str] = None
@@ -23,6 +28,10 @@ class ClinicUpdate(BaseModel):
     is_active: Optional[bool] = None
     logo_url: Optional[str] = None
     default_template_id: Optional[str] = None
+    default_doctor_name: Optional[str] = None
+    default_doctor_fee: Optional[int] = 0
+
+
 
 class ClinicSettingsUpdate(BaseModel):
     name: Optional[str] = None
@@ -30,6 +39,9 @@ class ClinicSettingsUpdate(BaseModel):
     address: Optional[str] = None
     logo_url: Optional[str] = None
     default_template_id: Optional[str] = None
+    default_doctor_name: Optional[str] = None
+    default_doctor_fee: Optional[int] = 0
+
 
 class ClinicInDB(ClinicBase):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)

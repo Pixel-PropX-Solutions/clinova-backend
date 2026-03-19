@@ -25,25 +25,13 @@ async def create_visit(visit: VisitCreate, current_user: TokenData = Depends(get
     result = await db.visits.insert_one(visit_db.model_dump(by_alias=True, exclude=["id"]))
     created_visit = await db.visits.find_one({"_id": result.inserted_id})
     created_visit["_id"] = str(created_visit["_id"])
-    
-    # Update patient: increment visit count, set last visit date, push visit to embedded array
-    visit_summary = {
-        "visit_id": str(result.inserted_id),
-        "fees": created_visit.get("fees", 0),
-        "dr_name": created_visit.get("dr_name"),
-        "disease": created_visit.get("disease"),
-        "specialization": created_visit.get("specialization"),
-        "payment_method": created_visit.get("payment_method", "Cash"),
-        "visited_at": created_visit.get("visited_at"),
-        "created_at": created_visit.get("created_at"),
-    }
-    
+
+    # Update patient aggregate fields only; visit records live in the visits collection.
     await db.patients.update_one(
         {"_id": ObjectId(visit.patient_id)},
         {
             "$inc": {"visit_count": 1},
-            "$set": {"last_visit_date": created_visit["created_at"]},
-            "$push": {"visits": visit_summary}
+            "$set": {"last_visit_date": created_visit.get("visited_at") or created_visit["created_at"]},
         }
     )
     
@@ -83,30 +71,27 @@ async def delete_visit(visit_id: str, current_user: TokenData = Depends(get_curr
     
     # 2. Delete the visit
     await db.visits.delete_one({"_id": ObjectId(visit_id)})
-    
-    # 3. Update patient: decrement visit count, remove visit from array
+
+    # 3. Recompute patient aggregate fields from remaining visits.
+    remaining_count = await db.visits.count_documents({
+        "patient_id": patient_id,
+        "clinic_id": current_user.clinic_id,
+    })
+    latest_visit = await db.visits.find_one(
+        {
+            "patient_id": patient_id,
+            "clinic_id": current_user.clinic_id,
+        },
+        sort=[("visited_at", -1), ("created_at", -1)]
+    )
     await db.patients.update_one(
         {"_id": ObjectId(patient_id)},
         {
-            "$inc": {"visit_count": -1},
-            "$pull": {"visits": {"visit_id": visit_id}}
+            "$set": {
+                "visit_count": remaining_count,
+                "last_visit_date": (latest_visit.get("visited_at") or latest_visit.get("created_at")) if latest_visit else None,
+            }
         }
     )
-    
-    # 4. Update last_visit_date to the latest remaining visit
-    updated_patient = await db.patients.find_one({"_id": ObjectId(patient_id)})
-    if updated_patient and updated_patient.get("visits") and len(updated_patient["visits"]) > 0:
-        # Sort visits to find the latest
-        remaining_visits = updated_patient["visits"]
-        latest_visit = max(remaining_visits, key=lambda x: x.get("visited_at") or x.get("created_at"))
-        await db.patients.update_one(
-            {"_id": ObjectId(patient_id)},
-            {"$set": {"last_visit_date": latest_visit.get("visited_at") or latest_visit.get("created_at")}}
-        )
-    elif updated_patient:
-        await db.patients.update_one(
-            {"_id": ObjectId(patient_id)},
-            {"$set": {"last_visit_date": None}}
-        )
 
     return None
