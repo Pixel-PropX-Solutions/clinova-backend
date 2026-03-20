@@ -16,6 +16,7 @@ from app.dashboard.routes import router as dashboard_router
 from app.settings.routes import router as settings_router
 from app.utils.logger import log
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("Starting up Clinova backend...")
@@ -24,23 +25,22 @@ async def lifespan(app: FastAPI):
     log.info("Shutting down...")
     await close_mongo_connection()
 
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     lifespan=lifespan,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url=settings.ENVIRONMENT == "development" and "/docs" or None,
+    redoc_url=settings.ENVIRONMENT == "development" and "/redoc" or None,
 )
 
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=[
-    #             "https://clinova-frontend.vercel.app",
-    #             "http://localhost:3000",
-    #             "https://localhost:3000",
-    #             "http://192.168.152.123:3000",
-    #             "https://192.168.152.123:3000"
-    # ],
-    allow_origins=["*"],  # for dev only
+    allow_origins=[
+        "https://clinova-frontend.vercel.app",
+        "https://clinova.pixelpropx.in",
+        "http://localhost:3000",
+        "https://localhost:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -55,6 +55,7 @@ app.include_router(pdf_router, prefix=settings.API_V1_STR)
 app.include_router(exports_router, prefix=settings.API_V1_STR)
 app.include_router(dashboard_router, prefix=settings.API_V1_STR)
 app.include_router(settings_router, prefix=settings.API_V1_STR)
+
 
 @app.get("/health")
 async def health_check():

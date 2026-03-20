@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Clinova"
     API_V1_STR: str = "/api/v1"
+    ENVIRONMENT: str = "development"
     
     # MongoDB Config
     MONGODB_URL: str = "mongodb://localhost:27017"
